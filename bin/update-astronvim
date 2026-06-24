@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ ! -d "$HOME/.config/nvim" ]; then
+  echo "No existe ~/.config/nvim"
+  exit 1
+fi
+
+cd "$HOME/.config/nvim"
+nvim --headless "+Lazy! sync" +qa
