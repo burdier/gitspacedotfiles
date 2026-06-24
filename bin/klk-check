@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+ok=0
+warn=0
+fail=0
+
+say() { printf '%s\n' "$*"; }
+pass() { ok=$((ok + 1)); printf '✅ %-14s %s\n' "$1" "$2"; }
+missing() { fail=$((fail + 1)); printf '❌ %-14s %s\n' "$1" "$2"; }
+soft() { warn=$((warn + 1)); printf '⚠️  %-14s %s\n' "$1" "$2"; }
+version_of() { "$1" --version 2>/dev/null | head -n1 || true; }
+check_cmd() {
+  local cmd="$1" label="${2:-$1}"
+  if command -v "$cmd" >/dev/null 2>&1; then
+    pass "$label" "$(command -v "$cmd") $(version_of "$cmd")"
+  else
+    missing "$label" "no encontrado en PATH"
+  fi
+}
+
+say '== KLK status del entorno =='
+say "Host: $(hostname 2>/dev/null || echo unknown)"
+say "Shell: ${SHELL:-unknown}"
+say "Fecha UTC: $(date -u '+%Y-%m-%d %H:%M:%S')"
+say ''
+
+say '== Tools requeridas =='
+for cmd in git nvim vim rg fd fzf tmux jq yq curl wget unzip zip tree python3 pip3 node npm; do
+  check_cmd "$cmd"
+done
+
+say ''
+say '== Tools nice-to-have =='
+for cmd in ctop lazygit bat eza delta bottom duf ncdu htop docker; do
+  check_cmd "$cmd"
+done
+if command -v docker >/dev/null 2>&1; then
+  if docker compose version >/dev/null 2>&1; then
+    pass docker-compose "$(docker compose version 2>/dev/null | head -n1)"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    pass docker-compose "$(docker-compose --version 2>/dev/null | head -n1)"
+  else
+    missing docker-compose "no encontré 'docker compose' ni docker-compose"
+  fi
+  if docker info >/dev/null 2>&1; then
+    pass docker-daemon 'daemon respondiendo'
+  else
+    soft docker-daemon 'docker instalado, pero el daemon no responde en este entorno'
+  fi
+fi
+
+say ''
+say '== Editor =='
+say "EDITOR=${EDITOR:-}"
+say "VISUAL=${VISUAL:-}"
+if command -v fc-match >/dev/null 2>&1; then
+  font_match="$(fc-match 'JetBrainsMono Nerd Font' 2>/dev/null || true)"
+  if printf '%s' "$font_match" | grep -qi 'JetBrains'; then
+    pass font "$font_match"
+  else
+    soft font 'JetBrainsMono Nerd Font no aparece en fc-match; revisa la fuente de la terminal'
+  fi
+else
+  soft font 'fontconfig/fc-match no está disponible para validar fuentes'
+fi
+
+say ''
+printf 'Resumen: %s OK, %s warnings, %s faltantes\n' "$ok" "$warn" "$fail"
+if [ "$fail" -gt 0 ]; then
+  exit 1
+fi
+exit 0

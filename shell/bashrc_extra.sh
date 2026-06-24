@@ -47,3 +47,14 @@ if [ -n "$BASH_VERSION" ]; then
   }
   export PS1='\u@\h:\w$(parse_git_branch)\$ '
 fi
+
+# Health/status check del entorno
+alias check='klk-check'
+alias klk='klk-check'
+
+# Docker helpers
+alias d='docker'
+alias dc='docker compose'
+alias dps='docker ps'
+alias dcu='docker compose up -d'
+alias dcd='docker compose down'

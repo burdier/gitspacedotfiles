@@ -4,7 +4,7 @@ set -euo pipefail
 echo "== System =="
 uname -a
 printf '\n== Tools ==\n'
-for cmd in git nvim vim node npm python3 pip3 rg fd fzf tmux jq; do
+for cmd in git nvim vim node npm python3 pip3 rg fd fzf tmux jq yq ctop lazygit bat eza delta duf ncdu docker; do
   if command -v "$cmd" >/dev/null 2>&1; then
     printf '%-8s %s\n' "$cmd" "$($cmd --version 2>/dev/null | head -n1 || true)"
   else

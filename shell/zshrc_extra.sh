@@ -25,3 +25,14 @@ alias gd='git diff'
 alias lg='lazygit'
 alias ports='ss -tulpn'
 alias serve='python3 -m http.server'
+
+# Health/status check del entorno
+alias check='klk-check'
+alias klk='klk-check'
+
+# Docker helpers
+alias d='docker'
+alias dc='docker compose'
+alias dps='docker ps'
+alias dcu='docker compose up -d'
+alias dcd='docker compose down'
