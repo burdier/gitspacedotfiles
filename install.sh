@@ -43,11 +43,13 @@ install_apt_packages() {
     ca-certificates \
     curl \
     fd-find \
+    fontconfig \
     fzf \
     git \
     htop \
     jq \
     less \
+    net-tools \
     python3 \
     python3-pip \
     ripgrep \
@@ -55,6 +57,7 @@ install_apt_packages() {
     tmux \
     tree \
     unzip \
+    yq \
     wget \
     xclip \
     zip
@@ -64,8 +67,13 @@ install_apt_packages() {
     sudo apt-get install -y nodejs npm || warn "No pude instalar nodejs/npm con apt."
   fi
 
-  # Algunos repos Ubuntu/Debian tienen lazygit/bottom; si no están, no rompemos el setup.
-  sudo apt-get install -y lazygit bottom 2>/dev/null || true
+  # Algunos repos Ubuntu/Debian tienen estas utilidades; si no están, no rompemos el setup.
+  sudo apt-get install -y lazygit bottom bat eza git-delta duf ncdu 2>/dev/null || true
+
+  # Debian/Ubuntu instala bat como "batcat" en algunas imágenes.
+  if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then
+    ln -sf "$(command -v batcat)" "$LOCAL_BIN/bat"
+  fi
 
   # Ubuntu/Debian instala fd como "fdfind". AstroNvim y varios plugins esperan "fd".
   if command -v fdfind >/dev/null 2>&1 && ! command -v fd >/dev/null 2>&1; then
@@ -113,6 +121,60 @@ install_latest_neovim_if_needed() {
     append_once "$HOME/.zshrc" "# >>> dotfiles PATH" 'export PATH="$HOME/.local/bin:$PATH"'
   fi
 }
+
+install_nerd_font() {
+  local font_dir="$HOME/.local/share/fonts/JetBrainsMonoNerdFont"
+  local version="v3.4.0"
+  local url="https://github.com/ryanoasis/nerd-fonts/releases/download/${version}/JetBrainsMono.zip"
+  local tmp
+
+  if [ -f "$font_dir/JetBrainsMonoNerdFont-Regular.ttf" ]; then
+    log "JetBrainsMono Nerd Font ya está instalada."
+    return 0
+  fi
+
+  log "Instalando JetBrainsMono Nerd Font para iconos de nvim/devicons..."
+  tmp="$(mktemp -d)"
+  mkdir -p "$font_dir"
+  if curl -fsSL "$url" -o "$tmp/JetBrainsMono.zip"; then
+    unzip -oq "$tmp/JetBrainsMono.zip" -d "$font_dir"
+    if command -v fc-cache >/dev/null 2>&1; then
+      fc-cache -f "$font_dir" >/dev/null 2>&1 || true
+    fi
+  else
+    warn "No pude descargar JetBrainsMono Nerd Font."
+  fi
+  rm -rf "$tmp"
+}
+
+install_ctop() {
+  if command -v ctop >/dev/null 2>&1; then
+    log "ctop ya está instalado."
+    return 0
+  fi
+
+  local arch asset url tmp
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64|amd64) asset="ctop-0.7.7-linux-amd64" ;;
+    aarch64|arm64) asset="ctop-0.7.7-linux-arm64" ;;
+    *)
+      warn "Arquitectura no soportada automáticamente para ctop: $arch."
+      return 0
+      ;;
+  esac
+
+  log "Instalando ctop (monitor de contenedores Docker)..."
+  url="https://github.com/bcicen/ctop/releases/download/v0.7.7/${asset}"
+  tmp="$(mktemp -d)"
+  if curl -fsSL "$url" -o "$tmp/ctop"; then
+    install -m 0755 "$tmp/ctop" "$LOCAL_BIN/ctop"
+  else
+    warn "No pude descargar ctop."
+  fi
+  rm -rf "$tmp"
+}
+
 
 install_shell_config() {
   log "Configurando shell: EDITOR=nvim, aliases, tmux y utilidades..."
@@ -168,6 +230,8 @@ install_astronvim() {
 
 main() {
   install_apt_packages
+  install_nerd_font
+  install_ctop
   install_latest_neovim_if_needed
   install_shell_config
   install_git_config_sample
